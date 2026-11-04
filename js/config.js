@@ -9,5 +9,5 @@
 //  ⚠️ NUNCA pongas aquí la "secret" / "service_role" key.
 // =====================================================================
 
-export const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-export const SUPABASE_KEY = 'TU_PUBLISHABLE_KEY';
+export const SUPABASE_URL = 'https://emuedouyogwfytaeflne.supabase.co/rest/v1/';
+export const SUPABASE_KEY = 'sb_publishable_lKj2k2JcZ16ZCk6JlJXDZQ_fC2aLNY0';
