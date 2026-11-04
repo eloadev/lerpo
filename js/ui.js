@@ -91,7 +91,12 @@ export function initials(name, email) {
 }
 export function avatar(p, size = 'sm') {
   if (!p) return '';
-  return `<span class="avatar avatar-${size}" style="--c:${esc(p.avatar_color || '#6d5bd0')}" title="${esc(p.full_name || p.email)}">${esc(initials(p.full_name, p.email))}</span>`;
+  const label = esc(p.full_name || p.email);
+  const color = esc(p.avatar_color || '#6d5bd0');
+  if (p.avatar_url && /^https:\/\//i.test(p.avatar_url)) {
+    return `<span class="avatar avatar-${size} has-img" style="--c:${color}" title="${label}"><img src="${esc(p.avatar_url)}" alt="" loading="lazy" referrerpolicy="no-referrer"></span>`;
+  }
+  return `<span class="avatar avatar-${size}" style="--c:${color}" title="${label}">${esc(initials(p.full_name, p.email))}</span>`;
 }
 
 // ---------- fechas ----------
@@ -146,6 +151,7 @@ const PATHS = {
   chevron: 'M6 9l6 6 6-6',
   arrowL: 'M15 18l-6-6 6-6',
   inbox: 'M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5',
+  camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
 };
 export function icon(name, size = 18) {

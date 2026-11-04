@@ -39,16 +39,64 @@ function shell() {
   return $('#main');
 }
 
+const AVATAR_COLORS = [
+  '#e5487b', '#f472b6', '#e58ea2', '#c026d3', '#8e5cd9', '#6d5bd0',
+  '#4f46e5', '#3b82f6', '#0ea5e9', '#0ea5a4', '#14b8a6', '#22a06b',
+  '#65a30d', '#84cc16', '#e2b203', '#f59e0b', '#f07a32', '#ef4444',
+  '#b45309', '#78716c', '#64748b', '#1d2742', '#0f172a', '#9d174d',
+];
+
+// Recorta al centro en cuadrado y reduce a 320px para que pese poquito
+async function prepareAvatar(file) {
+  if (!file.type.startsWith('image/')) throw new Error('Elige un archivo de imagen.');
+  if (file.size > 15 * 1024 * 1024) throw new Error('La imagen es muy grande (máx 15 MB).');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('No se pudo leer esa imagen.'));
+      i.src = url;
+    });
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    const size = Math.min(320, side);
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    canvas.getContext('2d').drawImage(img,
+      (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+    const toBlob = (type) => new Promise((res) => canvas.toBlob(res, type, 0.88));
+    let blob = await toBlob('image/webp');
+    if (!blob || blob.type !== 'image/webp') blob = await toBlob('image/jpeg');
+    return blob;
+  } finally { URL.revokeObjectURL(url); }
+}
+
 function openAccount() {
   const p = state.profile;
-  const colors = ['#6d5bd0', '#3b82f6', '#22a06b', '#e2b203', '#e5487b', '#f07a32', '#1d2742', '#0ea5a4'];
+  let color = p.avatar_color;
+  const custom = !AVATAR_COLORS.includes(color);
   const m = openModal(`
     <h2>Mi cuenta</h2>
     <form class="stack" id="acc">
+      <div class="avatar-edit">
+        <div id="avatar-preview"></div>
+        <div class="stack tight">
+          <label class="btn ghost small file-btn">${icon('camera', 16)} <span id="photo-label">${p.avatar_url ? 'Cambiar foto' : 'Subir foto'}</span>
+            <input type="file" id="photo" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+          </label>
+          <button type="button" class="btn ghost small danger-text" id="photo-remove" ${p.avatar_url ? '' : 'hidden'}>Quitar foto</button>
+          <p class="muted small">JPG, PNG o WebP. Se recorta en cuadrado.</p>
+        </div>
+      </div>
       <label>Nombre <input name="full_name" maxlength="80" required value="${esc(p.full_name)}"></label>
-      <fieldset><legend>Color de avatar</legend>
+      <fieldset><legend>Color <span class="muted">(se usa si no tienes foto)</span></legend>
         <div class="color-pick">
-          ${colors.map((c) => `<label style="--c:${c}"><input type="radio" name="color" value="${c}" ${c === p.avatar_color ? 'checked' : ''}><span></span></label>`).join('')}
+          ${AVATAR_COLORS.map((c) => `<label style="--c:${c}" title="${c}"><input type="radio" name="color" value="${c}" ${c === color ? 'checked' : ''}><span></span></label>`).join('')}
+          <label class="custom-color" title="Elige cualquier color" style="--c:${custom ? esc(color) : '#ffffff'}">
+            <input type="radio" name="color" value="custom" ${custom ? 'checked' : ''}>
+            <span>${icon('plus', 14)}</span>
+            <input type="color" id="color-any" value="${esc(color)}" aria-label="Color personalizado">
+          </label>
         </div>
       </fieldset>
       <p class="muted small">Correo: ${esc(state.user.email)}${p.is_admin ? ' · <b>Admin ELOA</b>' : ''}</p>
@@ -56,18 +104,69 @@ function openAccount() {
         <button type="button" class="btn ghost" id="logout">${icon('logout')} Cerrar sesión</button>
         <button class="btn">Guardar</button>
       </div>
-    </form>`);
-  $('#acc', m.el).addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
+    </form>`, { onClose: () => { if (photoChanged) route(); } });
+
+  let photoChanged = false;
+  const form = $('#acc', m.el);
+  const preview = () => {
+    $('#avatar-preview', m.el).innerHTML = avatar({ ...state.profile, full_name: form.full_name.value || p.full_name, avatar_color: color }, 'xl');
+  };
+  preview();
+  form.full_name.addEventListener('input', preview);
+
+  const any = $('#color-any', m.el);
+  const customLabel = any.closest('.custom-color');
+  form.addEventListener('change', (e) => {
+    if (e.target.name === 'color') {
+      color = e.target.value === 'custom' ? any.value : e.target.value;
+      preview();
+    }
+  });
+  any.addEventListener('input', () => {
+    color = any.value;
+    customLabel.style.setProperty('--c', color);
+    customLabel.querySelector('input[type=radio]').checked = true;
+    preview();
+  });
+  customLabel.querySelector('span').addEventListener('click', () => any.click());
+
+  $('#photo', m.el).addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const label = $('#photo-label', m.el);
+    label.textContent = 'Subiendo…';
     try {
-      state.profile = await api.updateMyProfile(state.user.id, {
-        full_name: String(f.get('full_name')).trim(), avatar_color: f.get('color') || p.avatar_color,
-      });
-      m.close(); toast('Perfil actualizado', 'success'); route();
+      const blob = await prepareAvatar(file);
+      state.profile = await api.uploadAvatar(state.user.id, blob);
+      photoChanged = true;
+      preview();
+      $('#photo-remove', m.el).hidden = false;
+      toast('Foto actualizada 📸', 'success');
+    } catch (ex) { toastError(ex); }
+    label.textContent = state.profile.avatar_url ? 'Cambiar foto' : 'Subir foto';
+  });
+  $('#photo-remove', m.el).addEventListener('click', async (e) => {
+    try {
+      state.profile = await api.removeAvatar(state.user.id);
+      photoChanged = true;
+      e.target.hidden = true;
+      $('#photo-label', m.el).textContent = 'Subir foto';
+      preview();
     } catch (ex) { toastError(ex); }
   });
-  $('#logout', m.el).addEventListener('click', async () => { m.close(); await api.signOut(); });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      state.profile = await api.updateMyProfile(state.user.id, {
+        full_name: form.full_name.value.trim(), avatar_color: /^#[0-9a-f]{6}$/i.test(color) ? color : p.avatar_color,
+      });
+      photoChanged = true;
+      m.close(); toast('Perfil actualizado', 'success');
+    } catch (ex) { toastError(ex); }
+  });
+  $('#logout', m.el).addEventListener('click', async () => { photoChanged = false; m.close(); await api.signOut(); });
 }
 
 async function loadUser(session) {

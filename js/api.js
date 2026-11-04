@@ -21,6 +21,8 @@ const MESSAGES = [
   [/rate limit|too many/i, 'Demasiados intentos. Espera un momento y vuelve a intentar.'],
   [/same password|different from the old/i, 'La nueva contraseña debe ser diferente a la anterior.'],
   [/row-level security|permission denied/i, 'No tienes permiso para hacer eso.'],
+  [/bucket not found/i, 'Falta correr el archivo 02-fotos-y-permisos.sql en Supabase.'],
+  [/payload too large|exceeded the maximum/i, 'La imagen pesa demasiado (máx 2 MB).'],
   [/failed to fetch|network/i, 'Sin conexión con el servidor. Revisa tu internet.'],
   [/jwt expired/i, 'Tu sesión expiró. Vuelve a iniciar sesión.'],
 ];
@@ -74,6 +76,31 @@ export async function getMyProfile(userId) {
 export async function updateMyProfile(userId, patch) {
   return ok(await sb.from('profiles').update(patch).eq('id', userId).select().single());
 }
+// Foto de perfil: se guarda en avatars/<mi-id>/<fecha>.<ext>
+export async function uploadAvatar(userId, blob) {
+  const ext = blob.type === 'image/webp' ? 'webp' : blob.type === 'image/jpeg' ? 'jpg' : 'png';
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const bucket = sb.storage.from('avatars');
+  ok(await bucket.upload(path, blob, { contentType: blob.type, cacheControl: '31536000', upsert: false }));
+  const url = bucket.getPublicUrl(path).data.publicUrl;
+  const profile = await updateMyProfile(userId, { avatar_url: url });
+  await cleanOldAvatars(userId, path);
+  return profile;
+}
+export async function removeAvatar(userId) {
+  const profile = await updateMyProfile(userId, { avatar_url: null });
+  await cleanOldAvatars(userId, null);
+  return profile;
+}
+async function cleanOldAvatars(userId, keepPath) {
+  try {
+    const bucket = sb.storage.from('avatars');
+    const { data } = await bucket.list(userId, { limit: 100 });
+    const old = (data || []).map((f) => `${userId}/${f.name}`).filter((p) => p !== keepPath);
+    if (old.length) await bucket.remove(old);
+  } catch { /* no es grave si quedan archivos viejos */ }
+}
+
 export async function listAreas() {
   return ok(await sb.from('areas').select('*').order('position'));
 }
@@ -101,7 +128,7 @@ export async function deleteProject(id) {
 // ---------- miembros e invitaciones ----------
 export async function listMembers(pid) {
   return ok(await sb.from('project_members')
-    .select('user_id, role, joined_at, profiles(id, full_name, email, avatar_color)')
+    .select('user_id, role, joined_at, profiles(id, full_name, email, avatar_color, avatar_url)')
     .eq('project_id', pid).order('joined_at'));
 }
 export async function setMemberRole(pid, userId, role) {
@@ -156,7 +183,7 @@ export async function listTasks(pid, sprintId) {
 }
 export async function getTask(id) {
   const t = ok(await sb.from('tasks')
-    .select('*, task_assignees(user_id), checklist_items(*), comments(*, profiles(full_name, avatar_color, email))')
+    .select('*, task_assignees(user_id), checklist_items(*), comments(*, profiles(full_name, avatar_color, avatar_url, email))')
     .eq('id', id).maybeSingle());
   if (t) {
     t.checklist_items.sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at));
@@ -193,7 +220,7 @@ export async function deleteChecklistItem(id) {
 }
 export async function addComment(taskId, body) {
   return ok(await sb.from('comments').insert({ task_id: taskId, body })
-    .select('*, profiles(full_name, avatar_color, email)').single());
+    .select('*, profiles(full_name, avatar_color, avatar_url, email)').single());
 }
 export async function deleteComment(id) {
   return ok(await sb.from('comments').delete().eq('id', id));

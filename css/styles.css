@@ -396,3 +396,25 @@ legend { font-size: .85rem; font-weight: 600; color: var(--ink-2); padding: 0; m
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- v2: fotos de perfil, paleta y vista de miembro ---------- */
+.avatar-xl { width: 88px; height: 88px; font-size: 1.9rem; border-width: 3px; box-shadow: 0 0 0 3px var(--c); }
+.avatar.has-img { overflow: hidden; background: var(--surface-2); }
+.avatar.has-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-edit { display: flex; align-items: center; gap: 20px; padding: 14px; border-radius: 16px; background: var(--surface-2); }
+.stack.tight { gap: 6px; justify-items: start; }
+.file-btn { cursor: pointer; color: var(--ink) !important; }
+.color-pick { gap: 7px; }
+.color-pick span { width: 28px; height: 28px; transition: transform .12s; }
+.color-pick label:hover span { transform: scale(1.12); }
+.custom-color { position: relative; }
+.custom-color > span {
+  display: grid !important; place-items: center; color: #1d2742;
+  background: conic-gradient(#ef4444, #f59e0b, #e2b203, #22a06b, #0ea5e9, #6d5bd0, #e5487b, #ef4444) !important;
+}
+.custom-color input[type=radio]:checked + span { background: var(--c) !important; color: transparent; }
+.custom-color input[type=color] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; padding: 0; border: 0; pointer-events: none; }
+.board-body.no-sprints { grid-template-columns: 1fr; }
+.task-modal.no-side { grid-template-columns: 1fr; }
+.task-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: .85rem; color: var(--ink-2); padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.task-facts > span { display: inline-flex; align-items: center; gap: 5px; }

@@ -12,15 +12,29 @@ export async function openTask(taskId, ctx) {
   if (!task) { toast('Esa tarea ya no existe', 'error'); onChange?.(); return; }
 
   const memberById = new Map(members.map((m) => [m.user_id, m.profiles]));
+  const readOnlyMeta = () => {
+    const area = state.areaById.get(task.area_id);
+    const sprint = sprints.find((s) => s.id === task.sprint_id);
+    const status = STATUS.find((s) => s.id === task.status);
+    const people = task.task_assignees.map((a) => memberById.get(a.user_id)).filter(Boolean);
+    return `<div class="task-facts">
+      <span class="role-pill">${esc(status?.label || '')}</span>
+      ${area ? `<span class="chip" style="--c:${esc(area.color)}">${esc(area.name)}</span>` : ''}
+      <span>${icon('inbox', 14)} ${esc(sprint?.name || 'Backlog')}</span>
+      ${task.due_date ? `<span>${icon('cal', 14)} ${longDate(task.due_date)}</span>` : ''}
+      ${people.length ? `<span class="avatars">${people.map((pp) => avatar(pp, 'sm')).join('')}</span>` : ''}
+    </div>`;
+  };
   const dis = canEdit ? '' : 'disabled';
   let changed = false;
 
   const m = openModal(`
-    <div class="task-modal">
+    <div class="task-modal ${canManage ? '' : 'no-side'}">
       <div class="task-main">
         <input class="task-title" id="t-title" value="${esc(task.title)}" maxlength="200" ${dis} aria-label="Título">
         <p class="muted small">en <b>${esc(project.name)}</b> · creada ${relTime(task.created_at)}
           <span class="saved" id="saved" aria-live="polite"></span></p>
+        ${canManage ? '' : readOnlyMeta()}
 
         <section>
           <h4>Descripción</h4>
@@ -53,7 +67,7 @@ export async function openTask(taskId, ctx) {
         </section>
       </div>
 
-      <aside class="task-side">
+      ${canManage ? `<aside class="task-side">
         <label>Estado
           <select id="t-status" ${dis}>${STATUS.map((s) => `<option value="${s.id}" ${s.id === task.status ? 'selected' : ''}>${s.label}</option>`).join('')}</select>
         </label>
@@ -82,9 +96,9 @@ export async function openTask(taskId, ctx) {
               </label>`).join('')}
           </div>
         </div>
-        ${canEdit ? `<button class="btn ghost danger-text block" id="t-delete">${icon('trash')} Borrar tarea</button>` : ''}
+        <button class="btn ghost danger-text block" id="t-delete">${icon('trash')} Borrar tarea</button>
         <p class="muted small">Actualizada ${relTime(task.updated_at)}</p>
-      </aside>
+      </aside>` : ''}
     </div>`, { wide: true, onClose: async () => { await flushPending(); if (changed) onChange?.(); } });
 
   // Si cierran el modal con Esc mientras escriben, guardamos lo pendiente
@@ -124,10 +138,10 @@ export async function openTask(taskId, ctx) {
   title.addEventListener('keydown', (e) => { if (e.key === 'Enter') title.blur(); });
   const desc = $('#t-desc', el);
   desc.addEventListener('change', () => { if (desc.value !== task.description) save({ description: desc.value }); });
-  $('#t-status', el).addEventListener('change', (e) => save({ status: e.target.value, position: Date.now() / 1e6 }));
-  $('#t-area', el).addEventListener('change', (e) => save({ area_id: e.target.value ? Number(e.target.value) : null }));
-  $('#t-sprint', el).addEventListener('change', (e) => save({ sprint_id: e.target.value || null }));
-  $('#t-due', el).addEventListener('change', (e) => save({ due_date: e.target.value || null }));
+  $('#t-status', el)?.addEventListener('change', (e) => save({ status: e.target.value, position: Date.now() / 1e6 }));
+  $('#t-area', el)?.addEventListener('change', (e) => save({ area_id: e.target.value ? Number(e.target.value) : null }));
+  $('#t-sprint', el)?.addEventListener('change', (e) => save({ sprint_id: e.target.value || null }));
+  $('#t-due', el)?.addEventListener('change', (e) => save({ due_date: e.target.value || null }));
 
   const deliv = $('#t-deliv', el);
   const delivOpen = $('#deliv-open', el);
@@ -141,7 +155,7 @@ export async function openTask(taskId, ctx) {
   deliv.addEventListener('change', () => { const v = deliv.value.trim(); if (v !== task.deliverable) save({ deliverable: v }); });
 
   // asignados
-  $('#assignees', el).addEventListener('change', async () => {
+  $('#assignees', el)?.addEventListener('change', async () => {
     const prev = task.task_assignees.map((a) => a.user_id);
     const next = $$('#assignees input:checked', el).map((i) => i.value);
     try {

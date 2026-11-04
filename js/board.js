@@ -71,6 +71,7 @@ export async function renderBoard(main, pid, requestedSprint) {
       <div class="sprint-title">
         <h1 id="sprint-name"></h1>
         <span class="date-chip" id="sprint-dates">${icon('cal', 14)} <span></span></span>
+        ${canManage ? '' : `<span class="role-pill">${ROLE_LABEL[role]}</span>`}
       </div>
       <div class="board-actions">
         <span class="progress-mini" id="progress-mini" title="Avance del sprint"></span>
@@ -80,15 +81,15 @@ export async function renderBoard(main, pid, requestedSprint) {
       </div>
     </header>
 
-    <div class="board-body">
-      <aside class="sprints" aria-label="Sprints">
+    <div class="board-body ${canManage ? '' : 'no-sprints'}">
+      ${canManage ? `<aside class="sprints" aria-label="Sprints">
         <div class="sprints-head">
           <h2>Sprints</h2>
-          ${canEdit ? `<button class="icon-btn" id="new-sprint" title="Nuevo sprint">${icon('plus')}</button>` : ''}
+          <button class="icon-btn" id="new-sprint" title="Nuevo sprint">${icon('plus')}</button>
         </div>
         <nav id="sprint-list"></nav>
         <p class="role-note muted small">Tu rol: <b>${ROLE_LABEL[role]}</b></p>
-      </aside>
+      </aside>` : ''}
 
       <section class="columns" id="columns">
         ${STATUS.map((st) => `
@@ -97,7 +98,7 @@ export async function renderBoard(main, pid, requestedSprint) {
               <h3>${st.label}</h3><span class="count" data-count="${st.id}">0</span>
             </div>
             <div class="cards" data-status="${st.id}"></div>
-            ${canEdit ? `
+            ${canManage ? `
               <form class="quick-add" data-status="${st.id}">
                 <input name="title" placeholder="+ Añadir tarea" maxlength="200" aria-label="Nueva tarea en ${st.label}">
               </form>` : ''}
@@ -110,20 +111,20 @@ export async function renderBoard(main, pid, requestedSprint) {
   function renderSprints() {
     const nav = $('#sprint-list', main);
     const today = todayISO();
-    nav.innerHTML = [
+    if (nav) nav.innerHTML = [
       ...sprints.map((s) => {
         const live = (!s.start_date || s.start_date <= today) && (!s.end_date || s.end_date >= today) && s.start_date;
         return `
         <a href="#/p/${pid}/s/${s.id}" class="sprint-item ${s.id === sprintId ? 'on' : ''}">
           <span class="grow"><b>${esc(s.name)}</b><small>${sprintRange(s)}</small></span>
           ${live ? '<span class="live-dot" title="En curso"></span>' : ''}
-          ${canEdit ? `<button class="icon-btn tiny" data-edit-sprint="${s.id}" title="Editar sprint">${icon('edit', 14)}</button>` : ''}
+          ${canManage ? `<button class="icon-btn tiny" data-edit-sprint="${s.id}" title="Editar sprint">${icon('edit', 14)}</button>` : ''}
         </a>`;
       }),
       `<a href="#/p/${pid}/s/backlog" class="sprint-item backlog ${sprintId === 'backlog' ? 'on' : ''}">
         <span class="grow"><b>${icon('inbox', 14)} Backlog</b><small>Tareas sin sprint</small></span></a>`,
     ].join('');
-    $$('[data-edit-sprint]', nav).forEach((b) => b.addEventListener('click', (e) => {
+    if (nav) $$('[data-edit-sprint]', nav).forEach((b) => b.addEventListener('click', (e) => {
       e.preventDefault(); e.stopPropagation();
       const s = sprints.find((x) => x.id === b.dataset.editSprint);
       openSprintForm(pid, s, async () => { sprints = await api.listSprints(pid); renderBoard(main, pid, sprintId); });
