@@ -1,7 +1,7 @@
 // Arranque y router de ELOA Board
 import * as api from './api.js';
 import { state, savePendingInvite, takePendingInvite } from './state.js';
-import { brand, icon, avatar, esc, openModal, toast, toastError, closeAllModals, $ } from './ui.js';
+import { brand, icon, avatar, esc, openModal, toast, toastError, closeAllModals, prepareImage, $ } from './ui.js';
 import { renderLogin, renderResetPassword, renderNotConfigured } from './auth.js';
 import { renderDashboard } from './dashboard.js';
 import { renderBoard, leaveBoard } from './board.js';
@@ -45,31 +45,6 @@ const AVATAR_COLORS = [
   '#65a30d', '#84cc16', '#e2b203', '#f59e0b', '#f07a32', '#ef4444',
   '#b45309', '#78716c', '#64748b', '#1d2742', '#0f172a', '#9d174d',
 ];
-
-// Recorta al centro en cuadrado y reduce a 320px para que pese poquito
-async function prepareAvatar(file) {
-  if (!file.type.startsWith('image/')) throw new Error('Elige un archivo de imagen.');
-  if (file.size > 15 * 1024 * 1024) throw new Error('La imagen es muy grande (máx 15 MB).');
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise((res, rej) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = () => rej(new Error('No se pudo leer esa imagen.'));
-      i.src = url;
-    });
-    const side = Math.min(img.naturalWidth, img.naturalHeight);
-    const size = Math.min(320, side);
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    canvas.getContext('2d').drawImage(img,
-      (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
-    const toBlob = (type) => new Promise((res) => canvas.toBlob(res, type, 0.88));
-    let blob = await toBlob('image/webp');
-    if (!blob || blob.type !== 'image/webp') blob = await toBlob('image/jpeg');
-    return blob;
-  } finally { URL.revokeObjectURL(url); }
-}
 
 function openAccount() {
   const p = state.profile;
@@ -137,7 +112,7 @@ function openAccount() {
     const label = $('#photo-label', m.el);
     label.textContent = 'Subiendo…';
     try {
-      const blob = await prepareAvatar(file);
+      const blob = await prepareImage(file, 320, 320);
       state.profile = await api.uploadAvatar(state.user.id, blob);
       photoChanged = true;
       preview();

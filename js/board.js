@@ -61,6 +61,8 @@ export async function renderBoard(main, pid, requestedSprint) {
 
   main.innerHTML = `
   <div class="board">
+    ${project.banner_url && /^https:\/\//i.test(project.banner_url) ? `
+      <div class="board-banner"><img src="${esc(project.banner_url)}" alt="" referrerpolicy="no-referrer"></div>` : ''}
     <header class="board-head">
       <div class="proj-switch">
         <select id="proj-select" aria-label="Cambiar de proyecto">

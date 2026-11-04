@@ -58,18 +58,6 @@ export async function renderDashboard(main) {
   const active = projects.filter((p) => p.status === 'active');
   const archived = projects.filter((p) => p.status === 'archived');
 
-  if (!projects.length && !isAdmin) {
-    main.innerHTML = `
-      <div class="page">
-        <div class="empty-state">
-          ${icon('lock', 40)}
-          <h2>Todavía no estás en ningún board</h2>
-          <p class="muted">Pídele a quien administra el proyecto un <b>link de invitación</b>.
-          Al abrirlo con tu sesión iniciada entrarás directo.</p>
-        </div>
-      </div>`;
-    return;
-  }
 
   const avg = active.length ? Math.round(active.reduce((s, p) => s + p.progress, 0) / active.length) : 0;
 
@@ -90,6 +78,8 @@ export async function renderDashboard(main) {
     ${active.length
       ? `<section class="pgrid">${active.map(card).join('')}</section>`
       : `<div class="empty-state small"><p class="muted">No hay proyectos activos.${isAdmin ? ' Crea el primero ✨' : ''}</p></div>`}
+    ${!isAdmin && projects.length && !projects.some((p) => p.is_member) ? `
+      <p class="notice center-text">${icon('lock', 14)} Puedes ver los proyectos, pero para entrar a un board necesitas un <b>link de invitación</b> de su admin.</p>` : ''}
 
     ${archived.length ? `
       <details class="archived">

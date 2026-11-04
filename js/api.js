@@ -21,7 +21,8 @@ const MESSAGES = [
   [/rate limit|too many/i, 'Demasiados intentos. Espera un momento y vuelve a intentar.'],
   [/same password|different from the old/i, 'La nueva contraseña debe ser diferente a la anterior.'],
   [/row-level security|permission denied/i, 'No tienes permiso para hacer eso.'],
-  [/bucket not found/i, 'Falta correr el archivo 02-fotos-y-permisos.sql en Supabase.'],
+  [/bucket not found/i, 'Falta correr los archivos SQL 02 y 03 en Supabase.'],
+  [/banner_url/i, 'Falta correr el archivo 03-dashboard-e-imagenes.sql en Supabase.'],
   [/payload too large|exceeded the maximum/i, 'La imagen pesa demasiado (máx 2 MB).'],
   [/failed to fetch|network/i, 'Sin conexión con el servidor. Revisa tu internet.'],
   [/jwt expired/i, 'Tu sesión expiró. Vuelve a iniciar sesión.'],
@@ -120,6 +121,23 @@ export async function createProject(p, userId) {
 }
 export async function updateProject(id, patch) {
   return ok(await sb.from('projects').update(patch).eq('id', id).select().single());
+}
+// Portada / banner: project-images/<proyecto>/<tipo>-<fecha>.<ext>
+export async function uploadProjectImage(pid, kind, blob) {
+  const ext = blob.type === 'image/webp' ? 'webp' : blob.type === 'image/jpeg' ? 'jpg' : 'png';
+  const path = `${pid}/${kind}-${Date.now()}.${ext}`;
+  const bucket = sb.storage.from('project-images');
+  ok(await bucket.upload(path, blob, { contentType: blob.type, cacheControl: '31536000', upsert: false }));
+  return { url: bucket.getPublicUrl(path).data.publicUrl, path };
+}
+export async function cleanProjectImages(pid, kind, keepPath) {
+  try {
+    const bucket = sb.storage.from('project-images');
+    const { data } = await bucket.list(pid, { limit: 100 });
+    const old = (data || []).map((f) => `${pid}/${f.name}`)
+      .filter((p) => p.startsWith(`${pid}/${kind}-`) && p !== keepPath);
+    if (old.length) await bucket.remove(old);
+  } catch { /* no es grave */ }
 }
 export async function deleteProject(id) {
   return ok(await sb.from('projects').delete().eq('id', id));

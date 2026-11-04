@@ -3,7 +3,29 @@ import * as api from './api.js';
 import { state } from './state.js';
 import {
   esc, icon, avatar, openModal, confirmDialog, toast, toastError, longDate, ROLE_LABEL, $, $$, todayISO,
+  prepareImage, isSafeUrl,
 } from './ui.js';
+
+// Tamaños finales: portada del dashboard 2:1, banner del board 4:1
+const IMG_KINDS = {
+  cover:  { w: 960,  h: 480, field: 'image_url',  label: 'Portada', hint: 'en el dashboard' },
+  banner: { w: 1800, h: 450, field: 'banner_url', label: 'Banner',  hint: 'arriba del board' },
+};
+
+function dropZone(kind, url) {
+  const k = IMG_KINDS[kind];
+  const has = url && isSafeUrl(url);
+  return `
+  <div class="img-field" data-kind="${kind}">
+    <span class="label">${k.label} <span class="muted">· ${k.hint}</span></span>
+    <label class="drop drop-${kind} ${has ? 'has' : ''}" style="aspect-ratio:${k.w}/${k.h}">
+      <img alt="" ${has ? `src="${esc(url)}"` : 'hidden'}>
+      <span class="drop-empty">${icon('image', 22)}<b>Subir imagen</b><small>o arrástrala aquí</small></span>
+      <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    </label>
+    <button type="button" class="btn ghost small danger-text img-remove" ${has ? '' : 'hidden'}>Quitar</button>
+  </div>`;
+}
 
 // ---------- Proyecto ----------
 export function openProjectForm(project, onSaved) {
@@ -18,9 +40,10 @@ export function openProjectForm(project, onSaved) {
       <label>Descripción <span class="muted">(opcional)</span>
         <textarea name="description" rows="2" maxlength="2000">${esc(p.description)}</textarea>
       </label>
-      <label>Imagen <span class="muted">(link https a una imagen, opcional)</span>
-        <input name="image_url" type="url" placeholder="https://…" value="${esc(p.image_url || '')}">
-      </label>
+      <div class="img-fields">
+        ${dropZone('cover', p.image_url)}
+        ${dropZone('banner', p.banner_url)}
+      </div>
       <fieldset>
         <legend>Áreas involucradas</legend>
         <div class="area-pick">
@@ -45,32 +68,82 @@ export function openProjectForm(project, onSaved) {
     </form>`);
 
   const form = $('#pform', m.el);
+  // Imágenes elegidas: { blob } nueva, { remove: true } quitar, o nada = igual
+  const pending = {};
+  let created = null; // si se creó pero falló una imagen, reintentar no duplica
+  const previews = [];
+  $$('.img-field', m.el).forEach((box) => {
+    const kind = box.dataset.kind;
+    const zone = $('.drop', box);
+    const img = $('img', zone);
+    const input = $('input[type=file]', zone);
+    const removeBtn = $('.img-remove', box);
+    const use = async (file) => {
+      if (!file) return;
+      try {
+        const blob = await prepareImage(file, IMG_KINDS[kind].w, IMG_KINDS[kind].h);
+        const url = URL.createObjectURL(blob);
+        previews.push(url);
+        pending[kind] = { blob };
+        img.src = url; img.hidden = false; zone.classList.add('has'); removeBtn.hidden = false;
+      } catch (ex) { toastError(ex); }
+    };
+    input.addEventListener('change', () => { use(input.files?.[0]); input.value = ''; });
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+    zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('over'); use(e.dataTransfer.files?.[0]); });
+    removeBtn.addEventListener('click', () => {
+      pending[kind] = { remove: true };
+      img.removeAttribute('src'); img.hidden = true; zone.classList.remove('has'); removeBtn.hidden = true;
+    });
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = new FormData(form);
-    const img = String(f.get('image_url') || '').trim();
-    if (img && !/^https:\/\//i.test(img)) {
-      $('.form-error', form).textContent = 'La imagen debe ser un link que empiece con https://';
-      return;
-    }
+    const submit = form.querySelector('button:not([type])');
     const data = {
       name: String(f.get('name')).trim(),
       description: String(f.get('description') || '').trim(),
-      image_url: img || null,
       area_ids: f.getAll('area').map(Number),
     };
     if (editing) data.status = f.get('archived') ? 'archived' : 'active';
+    submit.disabled = true;
     try {
-      const saved = editing
-        ? await api.updateProject(project.id, data)
+      const target = project || created;
+      let saved = target
+        ? await api.updateProject(target.id, data)
         : await api.createProject(data, state.user.id);
-      if (!editing) {
+      if (!target) {
+        created = saved;
         await api.createSprint({ project_id: saved.id, name: '1er Sprint', start_date: todayISO() });
       }
+      // subir / quitar imágenes (necesitan el id del proyecto)
+      const imgPatch = {};
+      const keep = {};
+      for (const [kind, change] of Object.entries(pending)) {
+        const field = IMG_KINDS[kind].field;
+        if (change.remove) { imgPatch[field] = null; keep[kind] = null; }
+        else if (change.blob) {
+          submit.textContent = 'Subiendo imágenes…';
+          const up = await api.uploadProjectImage(saved.id, kind, change.blob);
+          imgPatch[field] = up.url; keep[kind] = up.path;
+          delete pending[kind];
+        }
+      }
+      if (Object.keys(imgPatch).length) {
+        saved = await api.updateProject(saved.id, imgPatch);
+        for (const [kind, path] of Object.entries(keep)) api.cleanProjectImages(saved.id, kind, path);
+      }
+      previews.forEach((u) => URL.revokeObjectURL(u));
       m.close();
       toast(editing ? 'Proyecto actualizado' : 'Proyecto creado 🎉', 'success');
       onSaved?.(saved);
-    } catch (ex) { $('.form-error', form).textContent = ex.message; }
+    } catch (ex) {
+      $('.form-error', form).textContent = ex.message;
+      submit.disabled = false;
+      submit.textContent = editing || created ? 'Reintentar' : 'Crear proyecto';
+    }
   });
 
   $('#del-project', m.el)?.addEventListener('click', async () => {

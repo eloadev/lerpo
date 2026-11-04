@@ -152,8 +152,37 @@ const PATHS = {
   arrowL: 'M15 18l-6-6 6-6',
   inbox: 'M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5',
   camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z',
+  image: 'M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9.5a1.5 1.5 0 100-.01',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
 };
 export function icon(name, size = 18) {
   return `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${PATHS[name]}"/></svg>`;
+}
+
+// Recorta al centro con la proporción w:h, reduce y comprime (webp, o jpg si no hay webp)
+export async function prepareImage(file, w, h) {
+  if (!file.type.startsWith('image/')) throw new Error('Elige un archivo de imagen.');
+  if (file.size > 20 * 1024 * 1024) throw new Error('La imagen es muy grande (máx 20 MB).');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('No se pudo leer esa imagen.'));
+      i.src = url;
+    });
+    const ratio = w / h;
+    let sw = img.naturalWidth, sh = img.naturalHeight;
+    if (sw / sh > ratio) sw = sh * ratio; else sh = sw / ratio;
+    const scale = Math.min(1, w / sw);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(sw * scale);
+    canvas.height = Math.round(sh * scale);
+    canvas.getContext('2d').drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2,
+      sw, sh, 0, 0, canvas.width, canvas.height);
+    const toBlob = (type) => new Promise((res) => canvas.toBlob(res, type, 0.86));
+    let blob = await toBlob('image/webp');
+    if (!blob || blob.type !== 'image/webp') blob = await toBlob('image/jpeg');
+    return blob;
+  } finally { URL.revokeObjectURL(url); }
 }
