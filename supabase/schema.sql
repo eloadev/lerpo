@@ -125,10 +125,10 @@ create index on public.invitations (project_id);
 
 -- Áreas iniciales (cámbiales el nombre desde Table Editor → areas)
 insert into public.areas (name, color, position) values
-  ('Frontend',     '#3b82f6', 1),  -- azul
-  ('Backend',      '#22a06b', 2),  -- verde
-  ('Diseño',       '#e2b203', 3),  -- amarillo
-  ('Gestión / QA', '#8e5cd9', 4);  -- morado
+  ('Web',       '#3b82f6', 1),  -- azul
+  ('Game Dev',  '#22a06b', 2),  -- verde
+  ('Visuals',   '#e2b203', 3),  -- amarillo
+  ('Narrative', '#8e5cd9', 4);  -- morado
 
 -- ---------- Funciones auxiliares de permisos ----------------------------
 -- security definer + search_path fijo: se ejecutan con permisos del dueño
