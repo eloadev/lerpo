@@ -19,12 +19,13 @@ export const LERP = {
 export function lerp(pose, cls = '', alt = '') {
   return `<img class="lerp ${cls}" src="${ASSETS}lerp/${LERP[pose] || pose}.svg" alt="${esc(alt)}" ${alt ? '' : 'aria-hidden="true"'} decoding="async">`;
 }
-// Logo ELOA que cambia a versión blanca en modo oscuro
+// Logo ELOA que cambia a la versión blanca en tema oscuro (sigue el botón ☀️/🌙)
+// kind: 'horizontal' | 'vertical' | 'texto' (solo letras, sin la cabeza de LERP)
 export function eloaLogo(kind = 'horizontal', cls = '') {
-  return `<picture class="eloa-logo ${cls}">
-    <source srcset="${ASSETS}logos/eloa-${kind}-blanco.png" media="(prefers-color-scheme: dark)">
-    <img src="${ASSETS}logos/eloa-${kind}.png" alt="ELOA dev team">
-  </picture>`;
+  return `<span class="eloa-logo ${cls}" role="img" aria-label="ELOA dev team">
+    <img class="only-light" src="${ASSETS}logos/eloa-${kind}.png" alt="">
+    <img class="only-dark" src="${ASSETS}logos/eloa-${kind}-blanco.png" alt="">
+  </span>`;
 }
 export const eloaIcon = (cls = '') => `<img class="eloa-icon ${cls}" src="${ASSETS}logos/eloa-icono.png" alt="" aria-hidden="true">`;
 
@@ -166,6 +167,7 @@ const PATHS = {
   inbox: 'M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5',
   camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 100-8 4 4 0 000 8z',
   image: 'M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9.5a1.5 1.5 0 100-.01',
+  search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
 };
 export function icon(name, size = 18) {

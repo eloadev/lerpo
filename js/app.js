@@ -6,6 +6,7 @@ import { renderLogin, renderResetPassword, renderNotConfigured } from './auth.js
 import { renderDashboard } from './dashboard.js';
 import { renderBoard, leaveBoard } from './board.js';
 import { renderInvite } from './invite.js';
+import { initTheme, themeButton } from './theme.js';
 
 const root = document.getElementById('app');
 let recovering = new URLSearchParams(location.search).get('mode') === 'reset';
@@ -29,6 +30,7 @@ function shell() {
       <nav class="topnav">
         <a href="#/" class="navlink">Dashboard</a>
       </nav>
+      ${themeButton()}
       <button class="user-btn" id="user-btn" aria-label="Mi cuenta">
         ${avatar(state.profile, 'md')}
         <span class="hide-sm">${esc(state.profile?.full_name || state.user.email)}</span>
@@ -192,6 +194,7 @@ async function doRoute() {
 }
 
 async function boot() {
+  initTheme();
   if (!api.configured) return renderNotConfigured(root);
 
   let initial = true;

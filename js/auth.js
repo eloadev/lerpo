@@ -1,6 +1,7 @@
 // Pantallas de login, registro, recuperar y nueva contraseña
 import * as api from './api.js';
 import { esc, toast, toastError, lerp, eloaLogo, $ } from './ui.js';
+import { themeButton } from './theme.js';
 import { peekPendingInvite } from './state.js';
 
 const MIN_PW = 8;
@@ -16,18 +17,18 @@ function pwProblems(pw) {
 function shell(inner, pose = 'saludando') {
   return `
   <main class="auth">
-    <div class="auth-side" aria-hidden="true">
+    ${themeButton('theme-float')}
+    <div class="auth-side">
       <p class="eyebrow">Eat <span class="hl-orange">Logic</span> Output <span class="hl-pink">Art</span></p>
-      <h2>Los proyectos de ELOA,<br>en un solo lugar.</h2>
+      <h2>Los proyectos de ${eloaLogo('texto', 'inline-logo')}en un solo lugar.</h2>
       <p class="muted">Sprints, tareas y avance del equipo. Solo entra quien tiene invitación.</p>
     </div>
     <div class="auth-wrap">
-    ${lerp(pose, 'lerp-peek-top')}
+    ${lerp(pose, `lerp-peek-top pose-${pose}`)}
     <section class="auth-card">
       <div class="auth-brand">
         <p class="eyebrow">Project dashboard</p>
         <h1>LERPO</h1>
-        ${eloaLogo('horizontal', 'auth-eloa')}
       </div>
       ${inner}
     </section>

@@ -7,21 +7,23 @@ Todo lo visual de LERPO vive aquí. El código los busca **por nombre**, así qu
 | Archivo | Qué es | Dónde se usa |
 |---|---|---|
 | `eloa-icono.png` | Solo la cabeza de LERP | Barra superior de toda la app |
-| `eloa-horizontal.png` | Logo + "ELOA DEV TEAM" a la derecha, texto azul marino | Login (modo claro) |
-| `eloa-horizontal-blanco.png` | Igual, texto blanco | Login (modo oscuro) |
+| `eloa-horizontal.png` | Logo + "ELOA DEV TEAM" a la derecha, texto azul marino | Disponible |
+| `eloa-horizontal-blanco.png` | Igual, texto blanco | Disponible |
 | `eloa-vertical.png` | Logo con texto abajo, azul marino | Disponible (aún sin usar) |
 | `eloa-vertical-blanco.png` | Igual, texto blanco | Disponible (aún sin usar) |
+| `eloa-texto.png` | Solo letras "ELOA DEV TEAM" (sin la cabeza) | Título del login (tema claro) |
+| `eloa-texto-blanco.png` | Igual, en blanco | Título del login (tema oscuro) |
 
 ## `lerp/` — la mascota (SVG, se ven nítidos en cualquier tamaño)
 
 | Archivo | Pose | Dónde aparece |
 |---|---|---|
-| `lerp-saludando.svg` | Saluda asomándose desde abajo | Login / crear cuenta |
-| `lerp-mirando-arriba.svg` | Brazos arriba | "Revisa tu correo" y dashboard cuando todo va al 100% |
+| `lerp-saludando.svg` | Saluda asomándose desde abajo | Login / crear cuenta y encabezado del dashboard |
+| `lerp-mirando-arriba.svg` | Brazos arriba | "Revisa tu correo" |
 | `lerp-determinado.svg` | Decidido | Cambiar contraseña |
-| `lerp-parado.svg` | De pie, normal | Dashboard (junto al saludo) |
+| `lerp-parado.svg` | De pie, normal | Disponible |
 | `lerp-bombilla.svg` | Colgado de cabeza con un foco 💡 | Dashboard sin proyectos ("crea el primero") |
-| `lerp-curioso-2.svg` | Se asoma de lado | Pantalla de carga y aviso de "necesitas invitación" |
+| `lerp-curioso-2.svg` | Se asoma de lado | Pantalla de carga, "necesitas invitación" y búsqueda sin resultados |
 | `lerp-curioso.svg` | Se asoma de lado (variante) | Disponible |
 | `lerp-contento.svg` | Feliz | Aceptar invitación |
 | `lerp-contento-lado.svg` | Feliz asomándose en diagonal | Tarjeta de proyecto al 100% y "¡Sprint terminado!" |
@@ -46,3 +48,5 @@ Para usar una pose nueva en el código: `lerp('nombre', 'clase-css')` (ver `js/u
 | Rosa | `#D8A2D8` | Resaltar ("**Art**") |
 
 Tipografías: **Space Grotesk** (títulos), **Montserrat** (texto), **IBM Plex Mono** (etiquetas pequeñas).
+
+> Las imágenes con versión `-blanco` se cambian solas con el botón ☀️/🌙 de tema.
