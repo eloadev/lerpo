@@ -1,7 +1,7 @@
 // Dashboard general de ELOA: proyectos en curso con su % de avance
 import * as api from './api.js';
 import { state } from './state.js';
-import { esc, icon, toast, toastError, isSafeUrl, $ } from './ui.js';
+import { esc, icon, toast, toastError, isSafeUrl, lerp, $ } from './ui.js';
 import { openProjectForm } from './project-modals.js';
 
 function cover(p) {
@@ -27,6 +27,7 @@ function card(p) {
     aria-label="${esc(p.name)}, ${p.progress}% completado${locked ? ', sin acceso' : ''}">
     <div class="pcard-cover">${cover(p)}
       ${locked ? `<span class="lock-badge">${icon('lock', 14)} Solo con invitación</span>` : ''}
+      ${p.progress >= 100 && p.total_tasks ? `<span class="done-badge">¡Completado!</span>${lerp('contentoLado', 'lerp-card')}` : ''}
     </div>
     <div class="pcard-body">
       <h3>${esc(p.name)}</h3>
@@ -63,23 +64,30 @@ export async function renderDashboard(main) {
 
   main.innerHTML = `
   <div class="page">
-    <header class="page-head">
-      <div>
-        <p class="eyebrow">Project dashboard</p>
-        <h1>Proyectos en curso</h1>
+    <header class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">LERPO · project dashboard</p>
+        <h1>Proyectos <span class="hl-orange">en curso</span></h1>
+        <p class="hero-sub">Hola, <b>${esc((state.profile?.full_name || '').split(' ')[0] || 'equipo')}</b>. Así va lo que estamos construyendo en ELOA.</p>
+        <div class="head-stats">
+          <div><b>${active.length}</b><span>activos</span></div>
+          <div><b>${avg}%</b><span>avance promedio</span></div>
+          ${isAdmin ? `<button class="btn" id="new-project">${icon('plus')} Nuevo proyecto</button>` : ''}
+        </div>
       </div>
-      <div class="head-stats">
-        <div><b>${active.length}</b><span>activos</span></div>
-        <div><b>${avg}%</b><span>avance promedio</span></div>
-        ${isAdmin ? `<button class="btn" id="new-project">${icon('plus')} Nuevo proyecto</button>` : ''}
-      </div>
+      ${lerp(avg >= 100 && active.length ? 'mirandoArriba' : 'parado', 'lerp-hero')}
     </header>
 
     ${active.length
       ? `<section class="pgrid">${active.map(card).join('')}</section>`
-      : `<div class="empty-state small"><p class="muted">No hay proyectos activos.${isAdmin ? ' Crea el primero ✨' : ''}</p></div>`}
+      : `<div class="empty-state">
+          ${lerp('bombilla', 'lerp-empty')}
+          <h2>Aún no hay proyectos activos</h2>
+          <p class="muted">${isAdmin ? 'Crea el primero con <b>Nuevo proyecto</b> ✨' : 'Cuando el equipo cree uno, aparecerá aquí.'}</p>
+        </div>`}
     ${!isAdmin && projects.length && !projects.some((p) => p.is_member) ? `
-      <p class="notice center-text">${icon('lock', 14)} Puedes ver los proyectos, pero para entrar a un board necesitas un <b>link de invitación</b> de su admin.</p>` : ''}
+      <div class="notice notice-lerp">${lerp('curioso2', 'lerp-notice')}
+        <p>${icon('lock', 14)} Puedes ver los proyectos, pero para entrar a un board necesitas un <b>link de invitación</b> de su admin.</p></div>` : ''}
 
     ${archived.length ? `
       <details class="archived">
@@ -90,7 +98,12 @@ export async function renderDashboard(main) {
     <aside class="legend">
       ${state.areas.map((a) => `<span class="chip" style="--c:${esc(a.color)}">${esc(a.name)}</span>`).join('')}
     </aside>
-  </div>`;
+  </div>
+  <footer class="site-foot">
+    <span>Hecho con 💙 por <b>ELOA dev team</b></span>
+    <span class="mono">Eat <span class="hl-orange">Logic</span> Output <span class="hl-pink">Art</span></span>
+    <a href="https://eloadev.github.io/proyects/" target="_blank" rel="noopener">Nuestro portafolio ↗</a>
+  </footer>`;
 
   const open = (el) => {
     const p = projects.find((x) => x.id === el.dataset.id);

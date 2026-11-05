@@ -2,7 +2,7 @@
 import * as api from './api.js';
 import { state, lastSprint } from './state.js';
 import {
-  esc, icon, avatar, toast, toastError, shortDate, todayISO, STATUS, ROLE_LABEL, anyModalOpen, $, $$,
+  esc, icon, avatar, toast, toastError, shortDate, todayISO, STATUS, ROLE_LABEL, anyModalOpen, lerp, $, $$,
 } from './ui.js';
 import { openSprintForm, openMembers, openProjectForm } from './project-modals.js';
 import { openTask } from './task-modal.js';
@@ -41,7 +41,7 @@ export async function renderBoard(main, pid, requestedSprint) {
   if (!project || !role) {
     main.innerHTML = `
       <div class="page"><div class="empty-state">
-        ${icon('lock', 40)}
+        ${lerp('triste', 'lerp-empty')}
         <h2>No tienes acceso a este board</h2>
         <p class="muted">Necesitas un link de invitación de alguien admin del proyecto.</p>
         <a class="btn ghost" href="#/">${icon('arrowL')} Volver al dashboard</a>
@@ -94,6 +94,11 @@ export async function renderBoard(main, pid, requestedSprint) {
       </aside>` : ''}
 
       <section class="columns" id="columns">
+        <div class="board-empty" id="board-empty" hidden>
+          ${lerp('bandana', 'lerp-board-empty')}
+          <div><b>Sprint listo para arrancar</b>
+          <p class="muted small">${canManage ? 'Agrega la primera tarea con “+ Añadir tarea”.' : 'Todavía no hay tareas en este sprint.'}</p></div>
+        </div>
         ${STATUS.map((st) => `
           <div class="column" data-status="${st.id}">
             <div class="column-head">
@@ -107,6 +112,7 @@ export async function renderBoard(main, pid, requestedSprint) {
           </div>`).join('')}
       </section>
     </div>
+    <div class="all-done-lerp" aria-live="polite">${lerp('contentoLado', 'lerp-corner')}<span class="bubble">¡Sprint terminado! 🎉</span></div>
   </div>`;
 
   // ---------- sprints ----------
@@ -168,6 +174,8 @@ export async function renderBoard(main, pid, requestedSprint) {
     const total = tasks.length;
     const done = tasks.filter((t) => t.status === 'done').length;
     const pct = total ? Math.round((done / total) * 100) : 0;
+    $('#board-empty', main).hidden = total > 0;
+    $('.board', main)?.classList.toggle('all-done', total > 0 && pct === 100);
     $('#progress-mini', main).innerHTML = `<span class="bar"><span style="width:${pct}%"></span></span>${pct}%`;
   }
 

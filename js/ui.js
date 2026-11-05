@@ -7,16 +7,29 @@ export function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-export const logo = (size = 40) => `
-  <svg class="logo-eyes" width="${size}" height="${size * 0.6}" viewBox="0 0 50 30" aria-hidden="true">
-    <circle cx="14" cy="15" r="11" fill="var(--surface)" stroke="currentColor" stroke-width="2.5"/>
-    <circle cx="36" cy="15" r="11" fill="var(--surface)" stroke="currentColor" stroke-width="2.5"/>
-    <circle class="pupil" cx="16" cy="16" r="4.5" fill="currentColor"/>
-    <circle class="pupil" cx="38" cy="16" r="4.5" fill="currentColor"/>
-  </svg>`;
+// ---------- marca ELOA / LERPO ----------
+const ASSETS = 'assets/';
+export const LERP = {
+  saludando: 'lerp-saludando', bombilla: 'lerp-bombilla', contento: 'lerp-contento',
+  contentoLado: 'lerp-contento-lado', curioso: 'lerp-curioso', curioso2: 'lerp-curioso-2',
+  determinado: 'lerp-determinado', parado: 'lerp-parado', mirandoArriba: 'lerp-mirando-arriba',
+  triste: 'lerp-triste', bandana: 'lerp-bandana', bandana2: 'lerp-bandana-2',
+};
+// <img> de LERP. cls para tamaño/posición (ver .lerp-* en styles.css)
+export function lerp(pose, cls = '', alt = '') {
+  return `<img class="lerp ${cls}" src="${ASSETS}lerp/${LERP[pose] || pose}.svg" alt="${esc(alt)}" ${alt ? '' : 'aria-hidden="true"'} decoding="async">`;
+}
+// Logo ELOA que cambia a versión blanca en modo oscuro
+export function eloaLogo(kind = 'horizontal', cls = '') {
+  return `<picture class="eloa-logo ${cls}">
+    <source srcset="${ASSETS}logos/eloa-${kind}-blanco.png" media="(prefers-color-scheme: dark)">
+    <img src="${ASSETS}logos/eloa-${kind}.png" alt="ELOA dev team">
+  </picture>`;
+}
+export const eloaIcon = (cls = '') => `<img class="eloa-icon ${cls}" src="${ASSETS}logos/eloa-icono.png" alt="" aria-hidden="true">`;
 
 export function brand() {
-  return `<a class="brand" href="#/">${logo(42)}<span><b>ELOA</b><small>dev team</small></span></a>`;
+  return `<a class="brand" href="#/" aria-label="LERPO, inicio">${eloaIcon()}<span><b>LERPO</b><small>by ELOA dev team</small></span></a>`;
 }
 
 // ---------- toasts ----------

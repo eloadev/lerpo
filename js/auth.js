@@ -1,6 +1,6 @@
 // Pantallas de login, registro, recuperar y nueva contraseña
 import * as api from './api.js';
-import { esc, logo, toast, toastError, $ } from './ui.js';
+import { esc, toast, toastError, lerp, eloaLogo, $ } from './ui.js';
 import { peekPendingInvite } from './state.js';
 
 const MIN_PW = 8;
@@ -13,17 +13,25 @@ function pwProblems(pw) {
   return out;
 }
 
-function shell(inner) {
+function shell(inner, pose = 'saludando') {
   return `
   <main class="auth">
+    <div class="auth-side" aria-hidden="true">
+      <p class="eyebrow">Eat <span class="hl-orange">Logic</span> Output <span class="hl-pink">Art</span></p>
+      <h2>Los proyectos de ELOA,<br>en un solo lugar.</h2>
+      <p class="muted">Sprints, tareas y avance del equipo. Solo entra quien tiene invitación.</p>
+    </div>
+    <div class="auth-wrap">
+    ${lerp(pose, 'lerp-peek-top')}
     <section class="auth-card">
       <div class="auth-brand">
-        ${logo(64)}
-        <h1>ELOA</h1>
-        <p>dev team · project dashboard</p>
+        <p class="eyebrow">Project dashboard</p>
+        <h1>LERPO</h1>
+        ${eloaLogo('horizontal', 'auth-eloa')}
       </div>
       ${inner}
     </section>
+    </div>
   </main>`;
 }
 
@@ -104,7 +112,7 @@ export function renderLogin(root, mode = 'login') {
               <p class="muted">Te mandamos un link a <b>${esc(email)}</b> para confirmar tu cuenta.
               Ábrelo <b>en este mismo navegador</b>.</p>
               <button class="btn ghost" id="back">Volver</button>
-            </div>`);
+            </div>`, 'mirandoArriba');
           $('#back', root).onclick = () => renderLogin(root, 'login');
         }
       } else {
@@ -132,7 +140,7 @@ export function renderResetPassword(root, onDone) {
       </label>
       <p class="form-error" id="reset-error" role="alert"></p>
       <button class="btn block">Guardar contraseña</button>
-    </form>`);
+    </form>`, 'determinado');
   const form = $('#reset-form', root);
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -155,5 +163,5 @@ export function renderNotConfigured(root) {
       <h2>Falta conectar Supabase</h2>
       <p class="muted">Abre <code>js/config.js</code> y pega tu <b>Project URL</b> y tu
       <b>Publishable key</b> de Supabase. Los pasos están en el <code>README.md</code>.</p>
-    </div>`);
+    </div>`, 'triste');
 }

@@ -1,16 +1,16 @@
 // Página para aceptar una invitación (#/invite/<token>)
 import * as api from './api.js';
-import { esc, icon, toast, toastError, ROLE_LABEL, $ } from './ui.js';
+import { esc, icon, toast, toastError, ROLE_LABEL, lerp, $ } from './ui.js';
 
 export async function renderInvite(main, token) {
-  main.innerHTML = `<div class="page"><div class="empty-state"><p class="muted">Revisando invitación…</p></div></div>`;
+  main.innerHTML = `<div class="page"><div class="empty-state">${lerp('curioso2', 'lerp-empty')}<p class="muted">Revisando invitación…</p></div></div>`;
   let info = null;
   try { info = await api.invitePreview(token); } catch (e) { toastError(e); }
 
   if (!info) {
     main.innerHTML = `
       <div class="page"><div class="empty-state">
-        ${icon('lock', 40)}
+        ${lerp('triste', 'lerp-empty')}
         <h2>Invitación no válida</h2>
         <p class="muted">El link expiró, ya se usó o fue revocado. Pide uno nuevo.</p>
         <a class="btn ghost" href="#/">Ir al dashboard</a>
@@ -25,7 +25,7 @@ export async function renderInvite(main, token) {
 
   main.innerHTML = `
     <div class="page"><div class="empty-state invite-card">
-      ${icon('users', 40)}
+      ${lerp('contento', 'lerp-empty')}
       <p class="eyebrow">Te invitaron a</p>
       <h2>${esc(info.project_name)}</h2>
       <p class="muted">Entrarás con el rol <b>${ROLE_LABEL[info.role]}</b>.</p>
